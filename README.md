@@ -8,7 +8,7 @@ Source of password can be either a dictionary of English words or derived from s
 
 This modules also allows you add digits and symbols to passwords. While this makes passwords even stronger, it decreases password readability so you probably will have to choose balanced settings. Idea for this come from https://xkpasswd.net/s/.
 
-The password generator also returns the password generation [entropy](#entropy)
+The password generator also returns the password generation [entropy](#entropy).
 
 ## Installation
 
@@ -70,7 +70,7 @@ Entropy (measured in bits) is an indicator of the strenght of the password **gen
 
 Basically, the longer your password is and the wider your characters pool is, the higher the entropy is.
 
-It's generally considered an entrepy above 120 bits provide a very strong generation strengh.
+It's generally considered that an entropy above 120 bits provide a very strong generation strength.
 
 ## TODO
 
