@@ -106,16 +106,7 @@ func (g *Generator) GenPassword() (string, float64, error) {
 		words = genRandPwd(g.opt)
 	}
 
-	if g.opt.CapRule != CapRuleNone {
-		words = g.capitalize(words)
-	}
-
-	g.words = g.padWords(words)
-	g.words = g.l33tWords(words)
-
-	for _, word := range g.words {
-		g.size += uint(len(word))
-	}
+	g.words = g.extraProcess(words)
 
 	var sep byte
 	if g.opt.SepRule != SepRuleNone {
@@ -154,40 +145,6 @@ func (g *Generator) GenPassword() (string, float64, error) {
 	}
 
 	return string(pwd), g.entropy(string(pwd)), nil
-}
-
-func (g *Generator) padWords(words [][]byte) [][]byte {
-	newWords := make([][]byte, len(words))
-
-	for i, word := range words {
-		newWord := word
-
-		if g.opt.DigitsBefore > 0 || g.opt.DigitsAfter > 0 {
-			newWord = g.addNumsPadding(newWord, g.opt.DigitsBefore, g.opt.DigitsAfter)
-		}
-
-		if g.opt.SymbolsBefore > 0 || g.opt.SymbolsAfter > 0 {
-			newWord = g.addSymbolsPadding(newWord, g.opt.SymbolsBefore, g.opt.SymbolsAfter, g.opt.SymbolPool, g.opt.Symbol)
-		}
-
-		newWords[i] = newWord
-	}
-
-	return newWords
-}
-
-func (g *Generator) l33tWords(words [][]byte) [][]byte {
-	newWords := make([][]byte, len(words))
-
-	if g.opt.L33tRatio > 0 {
-		for i, word := range words {
-			newWord := word
-			newWord = g.arrayMapIf(newWord, g.isRand, g.make1337, g.opt.L33tRatio)
-			newWords[i] = newWord
-		}
-	}
-
-	return newWords
 }
 
 func (g *Generator) addNumsPadding(word []byte, nb uint, na uint) []byte {
@@ -250,45 +207,69 @@ func (g *Generator) paddingOfByte(count uint, char byte) []byte {
 	return padding
 }
 
-func (g *Generator) capitalize(words [][]byte) [][]byte {
+func (g *Generator) extraProcess(words [][]byte) [][]byte {
 	newWords := make([][]byte, len(words))
-	var newWord []byte
 
 	for i, word := range words {
-		switch g.opt.CapRule {
-		case CapRuleAll:
-			newWord = g.arrayMap(word, g.capChar)
+		newWord := word
 
-		case CapRuleWordAlternate:
-			if i%2 == 0 {
-				newWord = g.arrayMap(word, g.capChar)
-			} else {
-				newWord = word
-			}
-
-		case CapRuleAlternate:
-			newWord = g.arrayMapIf(word, g.isAlt, g.capChar)
-
-		case CapRuleFirstLetter:
-			newWord = g.arrayMapIf(word, g.isFirstLetter, g.capChar)
-
-		case CapRuleLastLetter:
-			newWord = g.arrayMapIf(word, g.isLastLetter, g.capChar, len(word))
-
-		case CapRuleAllButFirstLetter:
-			newWord = g.arrayMapIf(word, g.isNotFirstLetter, g.capChar)
-
-		case CapRuleAllButLastLetter:
-			newWord = g.arrayMapIf(word, g.isNotLastLetter, g.capChar, len(word))
-
-		case CapRuleRandom:
-			newWord = g.arrayMapIf(word, g.isRand, g.capChar, g.opt.CapRatio)
+		if g.opt.CapRule != CapRuleNone {
+			newWord = g.capWord(newWord, i)
 		}
 
+		if g.opt.DigitsBefore > 0 || g.opt.DigitsAfter > 0 {
+			newWord = g.addNumsPadding(newWord, g.opt.DigitsBefore, g.opt.DigitsAfter)
+		}
+
+		if g.opt.SymbolsBefore > 0 || g.opt.SymbolsAfter > 0 {
+			newWord = g.addSymbolsPadding(newWord, g.opt.SymbolsBefore, g.opt.SymbolsAfter, g.opt.SymbolPool, g.opt.Symbol)
+		}
+
+		if g.opt.L33tRatio > 0 {
+			newWord = g.arrayMapIf(newWord, g.isRand, g.make1337, g.opt.L33tRatio)
+		}
+
+		g.size += uint(len(newWord))
 		newWords[i] = newWord
 	}
 
 	return newWords
+}
+
+func (g *Generator) capWord(word []byte, i int) []byte {
+	var newWord []byte
+
+	switch g.opt.CapRule {
+	case CapRuleAll:
+		newWord = g.arrayMap(word, g.capChar)
+
+	case CapRuleWordAlternate:
+		if i%2 == 0 {
+			newWord = g.arrayMap(word, g.capChar)
+		} else {
+			newWord = word
+		}
+
+	case CapRuleAlternate:
+		newWord = g.arrayMapIf(word, g.isAlt, g.capChar)
+
+	case CapRuleFirstLetter:
+		newWord = g.arrayMapIf(word, g.isFirstLetter, g.capChar)
+
+	case CapRuleLastLetter:
+		newWord = g.arrayMapIf(word, g.isLastLetter, g.capChar, len(word))
+
+	case CapRuleAllButFirstLetter:
+		newWord = g.arrayMapIf(word, g.isNotFirstLetter, g.capChar)
+
+	case CapRuleAllButLastLetter:
+		newWord = g.arrayMapIf(word, g.isNotLastLetter, g.capChar, len(word))
+
+	case CapRuleRandom:
+		newWord = g.arrayMapIf(word, g.isRand, g.capChar, g.opt.CapRatio)
+	}
+
+	return newWord
 }
 
 func (g *Generator) capChar(char byte, idx int) byte {
@@ -408,7 +389,7 @@ func (g *Generator) entropy(pass string) float64 {
 		charRange *= 2
 	}
 
-	if g.opt.DigitsAfter > 0 || g.opt.DigitsBefore > 0 {
+	if g.opt.DigitsAfter > 0 || g.opt.DigitsBefore > 0 || g.opt.L33tRatio > 0 {
 		charRange += 10
 	}
 
