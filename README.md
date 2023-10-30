@@ -66,7 +66,7 @@ type Options struct {
 
 ## Entropy
 
-Entropy (measured in bits) is an indicator of the strenght of the password **generation method**, not of the password itself. That's why you will always get the same entropy for different passwords if the generation rules remain the same.
+Entropy (measured in bits) is an indicator of the strength of the password **generation method**, not of the password itself. That's why you will always get the same entropy for different passwords if the generation rules remain the same.
 
 Basically, the longer your password is and the wider your characters pool is, the higher the entropy is.
 
