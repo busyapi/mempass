@@ -8,6 +8,8 @@ Source of password can be either a dictionary of English words or derived from s
 
 This modules also allows you add digits and symbols to passwords. While this makes passwords even stronger, it decreases password readability so you probably will have to choose balanced settings. Idea for this come from https://xkpasswd.net/s/.
 
+Finally, some letters can be 1337 encoded (a, e, i, o, s, t).
+
 The password generator also returns the password generation [entropy](#entropy).
 
 ## Installation
@@ -59,6 +61,7 @@ type Options struct {
 	PadRule       PadRule  // Padding rule. Ignored if `PadLength` is 0
 	PadSymbol     byte     // Padding symbol. Only used if `PadRule` si `PadRuleFixed`. Default is `.`
 	PadLength     uint     // Password length to reach with padding.
+	L33tRatio     float32  // 1337 coding ratio. 0.0 = no 1337, 1.0 = all 1337, 0.3 = 1/3 1337, etc`. Default is 0
 }
 ```
 

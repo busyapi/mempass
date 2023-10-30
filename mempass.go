@@ -83,7 +83,7 @@ func NewGenerator(opt *Options) Generator {
 	leetMap['O'] = '0'
 	leetMap['s'] = '5'
 	leetMap['S'] = '5'
-	leetMap['a'] = '7'
+	leetMap['t'] = '7'
 	leetMap['T'] = '7'
 
 	return Generator{opt: opt, leetMap: leetMap}
