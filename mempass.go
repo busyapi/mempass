@@ -48,7 +48,7 @@ type Options struct {
 	DigitsAfter   uint     // Number of digits to add at the end of each word. Default is 0
 	DigitsBefore  uint     // Number of digits to add at the begining of each word. Default is 0
 	CapRule       CapRule  // Capitalization rule
-	CapRatio      float32  // Uppercase ratio. 0.0 = no uppercase, 1.0 = all uppercase, 0.3 = 1/3 uppercase, etc. Only used if `Capitalization` is `CapRandom`. Default is 0.2
+	CapRatio      float32  // Uppercase ratio. 0.0 = no uppercase, 1.0 = all uppercase, 0.3 = 1/3 uppercase, etc. Only used if `Capitalization` is `CapRandom`. Default is 0
 	SymbRule      SymbRule // Rule for adding symbols. Default is `SymbRuleNone`
 	SymbolsAfter  uint     // Number of symbols to add at the end of each word. Default is 0
 	SymbolsBefore uint     // Number of symbols to add at the begining of each word. Default is 0
@@ -60,6 +60,7 @@ type Options struct {
 	PadRule       PadRule  // Padding rule. Ignored if `PadLength` is 0
 	PadSymbol     byte     // Padding symbol. Only used if `PadRule` si `PadRuleFixed`. Default is `.`
 	PadLength     uint     // Password length to reach with padding.
+	L33tRatio     float32  // 1337 coding ratio. 0.0 = no 1337, 1.0 = all 1337, 0.3 = 1/3 1337, etc`. Default is 0
 }
 
 type Generator struct {
@@ -67,10 +68,25 @@ type Generator struct {
 	words       [][]byte
 	size        uint
 	paddingSize uint
+	leetMap     map[byte]byte
 }
 
 func NewGenerator(opt *Options) Generator {
-	return Generator{opt: opt}
+	leetMap := make(map[byte]byte)
+	leetMap['a'] = '4'
+	leetMap['A'] = '4'
+	leetMap['e'] = '3'
+	leetMap['E'] = '3'
+	leetMap['i'] = '1'
+	leetMap['I'] = '1'
+	leetMap['o'] = '0'
+	leetMap['O'] = '0'
+	leetMap['s'] = '5'
+	leetMap['S'] = '5'
+	leetMap['a'] = '7'
+	leetMap['T'] = '7'
+
+	return Generator{opt: opt, leetMap: leetMap}
 }
 
 // Generate a human memorable password
@@ -94,7 +110,8 @@ func (g *Generator) GenPassword() (string, float64, error) {
 		words = g.capitalize(words)
 	}
 
-	g.words = g.padWord(words)
+	g.words = g.padWords(words)
+	g.words = g.l33tWords(words)
 
 	for _, word := range g.words {
 		g.size += uint(len(word))
@@ -139,7 +156,7 @@ func (g *Generator) GenPassword() (string, float64, error) {
 	return string(pwd), g.entropy(string(pwd)), nil
 }
 
-func (g *Generator) padWord(words [][]byte) [][]byte {
+func (g *Generator) padWords(words [][]byte) [][]byte {
 	newWords := make([][]byte, len(words))
 
 	for i, word := range words {
@@ -154,6 +171,20 @@ func (g *Generator) padWord(words [][]byte) [][]byte {
 		}
 
 		newWords[i] = newWord
+	}
+
+	return newWords
+}
+
+func (g *Generator) l33tWords(words [][]byte) [][]byte {
+	newWords := make([][]byte, len(words))
+
+	if g.opt.L33tRatio > 0 {
+		for i, word := range words {
+			newWord := word
+			newWord = g.arrayMapIf(newWord, g.isRand, g.make1337, g.opt.L33tRatio)
+			newWords[i] = newWord
+		}
 	}
 
 	return newWords
@@ -223,35 +254,35 @@ func (g *Generator) capitalize(words [][]byte) [][]byte {
 	newWords := make([][]byte, len(words))
 	var newWord []byte
 
-	for i := range words {
+	for i, word := range words {
 		switch g.opt.CapRule {
 		case CapRuleAll:
-			newWord = g.arrayMap(words[i], g.capChar)
+			newWord = g.arrayMap(word, g.capChar)
 
 		case CapRuleWordAlternate:
 			if i%2 == 0 {
-				newWord = g.arrayMap(words[i], g.capChar)
+				newWord = g.arrayMap(word, g.capChar)
 			} else {
-				newWord = words[i]
+				newWord = word
 			}
 
 		case CapRuleAlternate:
-			newWord = g.arrayMapIf(words[i], g.isAlt, g.capChar)
+			newWord = g.arrayMapIf(word, g.isAlt, g.capChar)
 
 		case CapRuleFirstLetter:
-			newWord = g.arrayMapIf(words[i], g.isFirstLetter, g.capChar)
+			newWord = g.arrayMapIf(word, g.isFirstLetter, g.capChar)
 
 		case CapRuleLastLetter:
-			newWord = g.arrayMapIf(words[i], g.isLastLetter, g.capChar, len(words[i]))
+			newWord = g.arrayMapIf(word, g.isLastLetter, g.capChar, len(word))
 
 		case CapRuleAllButFirstLetter:
-			newWord = g.arrayMapIf(words[i], g.isNotFirstLetter, g.capChar)
+			newWord = g.arrayMapIf(word, g.isNotFirstLetter, g.capChar)
 
 		case CapRuleAllButLastLetter:
-			newWord = g.arrayMapIf(words[i], g.isNotLastLetter, g.capChar, len(words[i]))
+			newWord = g.arrayMapIf(word, g.isNotLastLetter, g.capChar, len(word))
 
 		case CapRuleRandom:
-			newWord = g.arrayMapIf(words[i], g.isRand, g.capChar, g.opt.CapRatio)
+			newWord = g.arrayMapIf(word, g.isRand, g.capChar, g.opt.CapRatio)
 		}
 
 		newWords[i] = newWord
@@ -286,6 +317,14 @@ func (g *Generator) isNotLastLetter(char byte, idx int, o ...any) bool {
 
 func (g *Generator) isRand(char byte, idx int, o ...any) bool {
 	return rand.Float32() <= o[0].(float32)
+}
+
+func (g *Generator) make1337(char byte, idx int) byte {
+	if _, exists := g.leetMap[char]; exists {
+		return g.leetMap[char]
+	}
+
+	return char
 }
 
 func (g *Generator) arrayMap(slice []byte, fn func(byte, int) byte) []byte {
@@ -352,6 +391,10 @@ func (g *Generator) checkOptions() error {
 
 	if g.opt.PadRule == PadRuleFixed && g.opt.PadSymbol == 0 {
 		g.opt.PadSymbol = '.'
+	}
+
+	if g.opt.L33tRatio < 0 || g.opt.L33tRatio > 1 {
+		return errors.New("`L33tRatio` must be between 0 and 1 included")
 	}
 
 	return nil
