@@ -74,6 +74,6 @@ It's generally considered an entrepy above 120 bits provide a very strong genera
 
 ## TODO
 
-- Add l33t replacement option
 - More options?
 - Provide more password strengh indicator
+- Tests
