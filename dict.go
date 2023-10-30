@@ -12,7 +12,7 @@ import (
 )
 
 // Get random words from the dictionary file
-func getDictWords(opt *Options, useMinMax bool) ([][]byte, error) {
+func getDictWords(opt *Options) ([][]byte, error) {
 	var words [][]byte
 	dict, err := readDictFile(opt)
 	if err != nil {
@@ -27,12 +27,9 @@ func getDictWords(opt *Options, useMinMax bool) ([][]byte, error) {
 
 	for i := 0; i < int(opt.WordCount); i++ {
 		var dictIdx int
-		if opt.WordLength > 0 && !useMinMax { // We only use fixed length word if wl is set but not minWl and maxWl
-			dictIdx = int(opt.WordLength)
-		} else {
-			keyIdx := int(rand.Float32() * float32((len(keys) - 1)))
-			dictIdx = keys[keyIdx]
-		}
+
+		keyIdx := int(rand.Float32() * float32((len(keys) - 1)))
+		dictIdx = keys[keyIdx]
 
 		if _, exists := dict[dictIdx]; !exists {
 			i--

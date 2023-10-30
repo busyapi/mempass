@@ -9,7 +9,15 @@ func genRandPwd(opt *Options) [][]byte {
 	var words [][]byte
 
 	for i := 0; i < int(opt.WordCount); i++ {
-		words = append(words, genWord(opt.WordLength, opt.UppercaseRatio, opt.DigitsCount))
+		var wl int
+		count := opt.MaxWordLength - opt.MinWordLength
+		if count == 0 {
+			wl = int(opt.MinWordLength)
+		} else {
+			wl = int(opt.MinWordLength) + rand.Intn(int(count))
+		}
+
+		words = append(words, genWord(wl))
 	}
 
 	return words
@@ -17,7 +25,7 @@ func genRandPwd(opt *Options) [][]byte {
 
 // Generate a random human memorable password of `wl` digits
 // Algorithm is based on Tom Van Vleck's Javascript source code: https://www.multicians.org/thvv/gpw.html
-func genWord(wl uint, up float32, nc uint) []byte {
+func genWord(wl int) []byte {
 	sum := 0
 	var output []byte
 	alphabet := "abcdefghijklmnopqrstuvwxyz"
