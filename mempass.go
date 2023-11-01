@@ -41,10 +41,10 @@ const (
 )
 
 type Options struct {
-	UseDict       bool     // Use dictionary. Default false
+	UseRand       bool     // Use randomly generated words instead of dictionary words . Default false
 	WordCount     uint     // Number of words to generate. Using less than 2 is discouraged. Default is 3
 	MinWordLength uint     // Minimum word length. O = no minimum. Using less than 4 is discouraged. Default is 6
-	MaxWordLength uint     // Maximum word length. O = no maximum. Default is 6
+	MaxWordLength uint     // Maximum word length. O = no maximum. Default is 8
 	DigitsAfter   uint     // Number of digits to add at the end of each word. Default is 0
 	DigitsBefore  uint     // Number of digits to add at the begining of each word. Default is 0
 	CapRule       CapRule  // Capitalization rule
@@ -72,6 +72,10 @@ type Generator struct {
 }
 
 func NewGenerator(opt *Options) Generator {
+	if opt == nil {
+		opt = &Options{}
+	}
+
 	leetMap := make(map[byte]byte)
 	leetMap['a'] = '4'
 	leetMap['A'] = '4'
@@ -98,7 +102,7 @@ func (g *Generator) GenPassword() (string, float64, error) {
 	var words [][]byte
 	var err error
 
-	if g.opt.UseDict {
+	if !g.opt.UseRand {
 		if words, err = getDictWords(g.opt); err != nil {
 			return "", 0, err
 		}
@@ -343,7 +347,7 @@ func (g *Generator) checkOptions() error {
 	}
 
 	if g.opt.MaxWordLength == 0 {
-		g.opt.MaxWordLength = 6
+		g.opt.MaxWordLength = 8
 	}
 
 	if g.opt.SeparatorPool == "" {
@@ -362,6 +366,10 @@ func (g *Generator) checkOptions() error {
 		return errors.New("`MinWordLength` cannot be greater than `MaxWordLength`")
 	}
 
+	if g.opt.CapRule == "" {
+		g.opt.CapRule = CapRuleNone
+	}
+
 	if g.opt.CapRule == CapRuleRandom && g.opt.CapRatio == 0 {
 		g.opt.CapRatio = .2
 	}
@@ -376,10 +384,6 @@ func (g *Generator) checkOptions() error {
 
 	if g.opt.SymbRule == SymbRuleRandom && g.opt.Symbol != 0 {
 		g.opt.Symbol = 0
-	}
-
-	if g.opt.CapRule == "" {
-		g.opt.CapRule = CapRuleNone
 	}
 
 	if g.opt.SepRule == "" {

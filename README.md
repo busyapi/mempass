@@ -1,16 +1,23 @@
 # Human Memorable Password Generator
 
-## Introduction
+## Introduction and feeatures
 
-This module generates strong, memorable passwords.
+This module generates strong passwords based on memorabled words. Current features are:
 
-Source of password can be either a dictionary of English words or derived from statistics of threee-letter sequences in English. The latter is a direct port in Go of https://www.multicians.org/thvv/gpw.js
+- Number of words
+- Words length can be from 1 to 28
+- Add separators beetween words
+- Mulitple letter capitalization options
+- Add digits before/after each word
+- Add symbols before/after each word
+- Add 1337 encoding for letters a, e, i, o, s, t
+- Choice between dictionary of English words or randomly generated memorable words.
+- Calculate the password generation [entropy](#entropy)
 
-This modules also allows you add digits and symbols to passwords. While this makes passwords even stronger, it decreases password readability so you probably will have to choose balanced settings. Idea for this come from https://xkpasswd.net/s/.
+This modules is inspired by the great work of:
 
-Finally, some letters can be 1337 encoded (a, e, i, o, s, t).
-
-The password generator also returns the password generation [entropy](#entropy).
+- https://www.multicians.org/thvv/gpw.js (the random memorable password generator is a direct port in Go)
+- https://xkpasswd.net/s/
 
 ## Installation
 
@@ -23,39 +30,30 @@ go get github.com/busyapi/mempass
 ### Example
 
 ```go
-gen := mempass.NewGenerator(&mempass.Options{
-		UseDict:       true,
-		WordCount:     4,
-		MinWordLength: 6,
-		MaxWordLength: 8,
-		CapRule:       mempass.CapRuleFirstLetter,
-		SepRule:       mempass.SepRuleFixed,
-		Separator: '!',
-	})
-
-	password, entropy, err := gen.GenPassword()
+gen := mempass.NewGenerator(nil)
+password, entropy, err := gen.GenPassword()
 ```
 
-This will produce a password liek `Auroral!Tallied!Couture!Crewmen`
+This will produce a password like `tildes-brazen-quezals`
 
-### Options
+### Options and default values
 
 ```go
 type Options struct {
-	UseDict       bool     // Use dictionary. Default false
-	WordCount     uint     // Number of words to generate. Using less than 2 is discouraged. Default is 2
-	MinWordLength uint     // Minimum word length. O = no minimum. Using less than 4 is discouraged. Default is 0
-	MaxWordLength uint     // Maximum word length. O = no maximum. Default is 0
+	UseRand       bool     // Use randomly generated words instead of dictionary words . Default false
+	WordCount     uint     // Number of words to generate. Using less than 2 is discouraged. Default is 3
+	MinWordLength uint     // Minimum word length. O = no minimum. Using less than 4 is discouraged. Default is 6
+	MaxWordLength uint     // Maximum word length. O = no maximum. Default is 8
 	DigitsAfter   uint     // Number of digits to add at the end of each word. Default is 0
 	DigitsBefore  uint     // Number of digits to add at the begining of each word. Default is 0
 	CapRule       CapRule  // Capitalization rule
-	CapRatio      float32  // Uppercase ratio. 0.0 = no uppercase, 1.0 = all uppercase, 0.3 = 1/3 uppercase, etc. Only used if `Capitalization` is `CapRandom`. Default is 0.2
+	CapRatio      float32  // Uppercase ratio. 0.0 = no uppercase, 1.0 = all uppercase, 0.3 = 1/3 uppercase, etc. Only used if `CapRule` is `CapRandom`. Default is 0.2
 	SymbRule      SymbRule // Rule for adding symbols. Default is `SymbRuleNone`
 	SymbolsAfter  uint     // Number of symbols to add at the end of each word. Default is 0
 	SymbolsBefore uint     // Number of symbols to add at the begining of each word. Default is 0
 	SymbolPool    string   // Symbols pool. Only used if `SymbRule` is `SymbRuleRandom`. Default is "@&!-_^$*%,.;:/=+"
-	Symbol        byte     // Symbol character. Only used if `SymbRule` is `SymbRuleFixed` or `SymbRulePadding`. Default is `/`
-	SepRule       SepRule  // Seperator type. Default is `SepRuleNone`
+	Symbol        byte     // Symbol character. Only used if `SymbRule` is `SymbRuleFixed`. Default is `/`
+	SepRule       SepRule  // Seperator type. Default is `SepRuleFixed`
 	SeparatorPool string   // Seperators pool. Only used if `SepRule` is `SepRuleRandom`. Default is "@&!-_^$*%,.;:/=+"
 	Separator     byte     // Separator for words. Only used if `SepRule` is `SepRuleFixed`. Default is '-'
 	PadRule       PadRule  // Padding rule. Ignored if `PadLength` is 0
@@ -79,4 +77,3 @@ It's generally considered that an entropy above 120 bits provide a very strong g
 
 - More options?
 - Provide more password strengh indicator
-- Tests

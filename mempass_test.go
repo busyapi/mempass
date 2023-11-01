@@ -8,23 +8,19 @@ import (
 )
 
 func TestDefault(t *testing.T) {
-	testPwd(&Options{}, `^[a-z]{6}-[a-z]{6}-[a-z]{6}$`, t)
+	testPwd(nil, `^[a-z]{6,8}-[a-z]{6,8}-[a-z]{6,8}$`, t)
 }
 
 func TestSperatorFixedSet(t *testing.T) {
 	testPwd(&Options{
-		UseDict:       true,
-		WordCount:     2,
-		MinWordLength: 6,
-		MaxWordLength: 8,
-		SepRule:       SepRuleFixed,
-		Separator:     '_',
+		WordCount: 2,
+		SepRule:   SepRuleFixed,
+		Separator: '_',
 	}, `^[a-z]{6,8}_[a-z]{6,8}$`, t)
 }
 
 func TestSperatorRandomDefault(t *testing.T) {
 	testPwd(&Options{
-		UseDict:   true,
 		WordCount: 2,
 		SepRule:   SepRuleRandom,
 	}, `^[a-z]{6,8}[@&!-_^$*%,.;:/=+][a-z]{6,8}$`, t)
@@ -32,7 +28,6 @@ func TestSperatorRandomDefault(t *testing.T) {
 
 func TestSperatorRandomSet(t *testing.T) {
 	testPwd(&Options{
-		UseDict:       true,
 		WordCount:     2,
 		SepRule:       SepRuleRandom,
 		SeparatorPool: "@&!",
@@ -41,7 +36,6 @@ func TestSperatorRandomSet(t *testing.T) {
 
 func Test2Digits2FixedSymbolDefault(t *testing.T) {
 	testPwd(&Options{
-		UseDict:       true,
 		WordCount:     3,
 		MinWordLength: 4,
 		MaxWordLength: 4,
@@ -56,7 +50,7 @@ func Test2Digits2FixedSymbolDefault(t *testing.T) {
 
 func Test2Digits2FixedSymbolSet(t *testing.T) {
 	testPwd(&Options{
-		UseDict:       true,
+		UseRand:       true,
 		WordCount:     2,
 		MinWordLength: 4,
 		MaxWordLength: 4,
@@ -72,7 +66,6 @@ func Test2Digits2FixedSymbolSet(t *testing.T) {
 
 func Test2SymbolsRandomDefault(t *testing.T) {
 	testPwd(&Options{
-		UseDict:       true,
 		WordCount:     2,
 		MinWordLength: 4,
 		MaxWordLength: 4,
@@ -84,39 +77,37 @@ func Test2SymbolsRandomDefault(t *testing.T) {
 
 func Test2SymbolsRandomSet(t *testing.T) {
 	testPwd(&Options{
-		UseDict:       true,
 		WordCount:     2,
 		SymbolsBefore: 2,
 		SymbolsAfter:  2,
 		SymbRule:      SymbRuleRandom,
 		SymbolPool:    "@&!",
 		SepRule:       SepRuleNone,
-	}, `^([@&!]{2}[a-z]{6}[@&!]{2}){2}$`, t)
+	}, `^([@&!]{2}[a-z]{6,8}[@&!]{2}){2}$`, t)
 }
 
 func TestPaddingFixed(t *testing.T) {
 	testPwd(&Options{
-		UseDict:   true,
 		WordCount: 2,
 		PadRule:   PadRuleFixed,
 		PadSymbol: '@',
 		PadLength: 20,
 		SepRule:   SepRuleNone,
-	}, `^[a-z]{12}@{8}$`, t)
+	}, `^[a-z]{12,16}@{4,8}$`, t)
 }
 
 func TestCapFirst(t *testing.T) {
 	testPwd(&Options{
-		UseDict:   true,
-		WordCount: 2,
-		SepRule:   SepRuleNone,
-		CapRule:   CapRuleFirstLetter,
+		WordCount:     2,
+		SepRule:       SepRuleNone,
+		MinWordLength: 6,
+		MaxWordLength: 6,
+		CapRule:       CapRuleFirstLetter,
 	}, `^([A-Z][a-z]{5}){2}$`, t)
 }
 
 func TestCapLast(t *testing.T) {
 	testPwd(&Options{
-		UseDict:       true,
 		WordCount:     2,
 		MinWordLength: 4,
 		MaxWordLength: 6,
@@ -127,7 +118,6 @@ func TestCapLast(t *testing.T) {
 
 func TestCapAllButFirst(t *testing.T) {
 	testPwd(&Options{
-		UseDict:       true,
 		WordCount:     2,
 		MinWordLength: 4,
 		MaxWordLength: 6,
@@ -138,7 +128,6 @@ func TestCapAllButFirst(t *testing.T) {
 
 func TestCapAllButLast(t *testing.T) {
 	testPwd(&Options{
-		UseDict:       true,
 		WordCount:     2,
 		MinWordLength: 4,
 		MaxWordLength: 6,
@@ -149,7 +138,6 @@ func TestCapAllButLast(t *testing.T) {
 
 func TestCapAlternate(t *testing.T) {
 	testPwd(&Options{
-		UseDict:       true,
 		WordCount:     1,
 		MinWordLength: 4,
 		MaxWordLength: 4,
@@ -160,35 +148,31 @@ func TestCapAlternate(t *testing.T) {
 
 func TestCapWordAlternate(t *testing.T) {
 	testPwd(&Options{
-		UseDict:   true,
 		WordCount: 2,
 		CapRule:   CapRuleWordAlternate,
-	}, `^[A-Z]{6}-[a-z]{6}$`, t)
+	}, `^[A-Z]{6,8}-[a-z]{6,8}$`, t)
 }
 
 func TestCapRandomDefault(t *testing.T) {
 	testPwd(&Options{
-		UseDict:   true,
 		WordCount: 2,
 		CapRule:   CapRuleRandom,
-	}, `^[a-zA-Z]{6}-[a-zA-Z]{6}$`, t)
+	}, `^[a-zA-Z]{6,8}-[a-zA-Z]{6,8}$`, t)
 }
 
 func TestCapRandomSet(t *testing.T) {
 	testPwd(&Options{
-		UseDict:   true,
 		WordCount: 2,
 		CapRule:   CapRuleRandom,
 		CapRatio:  .8,
-	}, `^[a-zA-Z]{6}-[a-zA-Z]{6}$`, t)
+	}, `^[a-zA-Z]{6,8}-[a-zA-Z]{6,8}$`, t)
 }
 
 func Test1337(t *testing.T) {
 	testPwd(&Options{
-		UseDict:   true,
 		WordCount: 2,
 		L33tRatio: 0.5,
-	}, `^[a-zA-Z0-9]{6}-[a-zA-Z0-9]{6}$`, t)
+	}, `^[a-zA-Z0-9]{6,8}-[a-zA-Z0-9]{6,8}$`, t)
 }
 
 func testPwd(opt *Options, pattern string, t *testing.T) {
