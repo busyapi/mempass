@@ -13,7 +13,7 @@ type SymbPos string
 type PadRule string
 
 const (
-	CapRuleNone              CapRule = ""
+	CapRuleNone              CapRule = "none"
 	CapRuleAll               CapRule = "all"
 	CapRuleAlternate         CapRule = "alternate"
 	CapRuleWordAlternate     CapRule = "word_alternate"
@@ -25,7 +25,7 @@ const (
 )
 
 const (
-	SepRuleNone   SepRule = ""
+	SepRuleNone   SepRule = "none"
 	SepRuleFixed  SepRule = "fixed"
 	SepRuleRandom SepRule = "random"
 )
@@ -42,19 +42,19 @@ const (
 
 type Options struct {
 	UseDict       bool     // Use dictionary. Default false
-	WordCount     uint     // Number of words to generate. Using less than 2 is discouraged. Default is 2
-	MinWordLength uint     // Minimum word length. O = no minimum. Using less than 4 is discouraged. Default is 0
-	MaxWordLength uint     // Maximum word length. O = no maximum. Default is 0
+	WordCount     uint     // Number of words to generate. Using less than 2 is discouraged. Default is 3
+	MinWordLength uint     // Minimum word length. O = no minimum. Using less than 4 is discouraged. Default is 6
+	MaxWordLength uint     // Maximum word length. O = no maximum. Default is 6
 	DigitsAfter   uint     // Number of digits to add at the end of each word. Default is 0
 	DigitsBefore  uint     // Number of digits to add at the begining of each word. Default is 0
 	CapRule       CapRule  // Capitalization rule
-	CapRatio      float32  // Uppercase ratio. 0.0 = no uppercase, 1.0 = all uppercase, 0.3 = 1/3 uppercase, etc. Only used if `Capitalization` is `CapRandom`. Default is 0
+	CapRatio      float32  // Uppercase ratio. 0.0 = no uppercase, 1.0 = all uppercase, 0.3 = 1/3 uppercase, etc. Only used if `CapRule` is `CapRandom`. Default is 0.2
 	SymbRule      SymbRule // Rule for adding symbols. Default is `SymbRuleNone`
 	SymbolsAfter  uint     // Number of symbols to add at the end of each word. Default is 0
 	SymbolsBefore uint     // Number of symbols to add at the begining of each word. Default is 0
 	SymbolPool    string   // Symbols pool. Only used if `SymbRule` is `SymbRuleRandom`. Default is "@&!-_^$*%,.;:/=+"
-	Symbol        byte     // Symbol character. Only used if `SymbRule` is `SymbRuleFixed` or `SymbRulePadding`. Default is `/`
-	SepRule       SepRule  // Seperator type. Default is `SepRuleNone`
+	Symbol        byte     // Symbol character. Only used if `SymbRule` is `SymbRuleFixed`. Default is `/`
+	SepRule       SepRule  // Seperator type. Default is `SepRuleFixed`
 	SeparatorPool string   // Seperators pool. Only used if `SepRule` is `SepRuleRandom`. Default is "@&!-_^$*%,.;:/=+"
 	Separator     byte     // Separator for words. Only used if `SepRule` is `SepRuleFixed`. Default is '-'
 	PadRule       PadRule  // Padding rule. Ignored if `PadLength` is 0
@@ -121,7 +121,6 @@ func (g *Generator) GenPassword() (string, float64, error) {
 
 	if g.opt.PadLength > 0 && g.size < g.opt.PadLength {
 		g.paddingSize = g.opt.PadLength - g.size
-		g.size += (g.opt.PadLength - g.size)
 	}
 
 	pwd := make([]byte, g.size)
@@ -142,6 +141,7 @@ func (g *Generator) GenPassword() (string, float64, error) {
 
 	if g.paddingSize >= 1 {
 		pwd = g.addWordPadding(pwd, 0, g.paddingSize, g.opt.SymbolPool, g.opt.PadSymbol)
+		g.size += (g.opt.PadLength - g.size)
 	}
 
 	return string(pwd), g.entropy(string(pwd)), nil
@@ -190,7 +190,7 @@ func (g *Generator) randBytesFrom(count uint, source string) []byte {
 	res := make([]byte, count)
 
 	for i := 0; i < int(count); i++ {
-		idx := rand.Intn(10)
+		idx := rand.Intn(len(source))
 		res[i] = source[idx]
 	}
 
@@ -335,7 +335,15 @@ func (g *Generator) arrayMapIf(slice []byte, ifFn func(byte, int, ...any) bool, 
 
 func (g *Generator) checkOptions() error {
 	if g.opt.WordCount == 0 {
-		g.opt.WordCount = 2
+		g.opt.WordCount = 3
+	}
+
+	if g.opt.MinWordLength == 0 {
+		g.opt.MinWordLength = 6
+	}
+
+	if g.opt.MaxWordLength == 0 {
+		g.opt.MaxWordLength = 6
 	}
 
 	if g.opt.SeparatorPool == "" {
@@ -346,16 +354,16 @@ func (g *Generator) checkOptions() error {
 		g.opt.SymbolPool = "@&!-_^$*%,.;:/=+"
 	}
 
-	if g.opt.MaxWordLength == 0 {
-		g.opt.MaxWordLength = 28
-	}
-
 	if g.opt.MinWordLength > 28 || g.opt.MaxWordLength > 28 {
 		return errors.New("`MinWordLength` and `MaxWordLength` cannot be greater than 28")
 	}
 
 	if g.opt.MinWordLength > 0 && g.opt.MaxWordLength > 0 && g.opt.MinWordLength > g.opt.MaxWordLength {
 		return errors.New("`MinWordLength` cannot be greater than `MaxWordLength`")
+	}
+
+	if g.opt.CapRule == CapRuleRandom && g.opt.CapRatio == 0 {
+		g.opt.CapRatio = .2
 	}
 
 	if g.opt.CapRule == CapRuleRandom && (g.opt.CapRatio <= 0 || g.opt.CapRatio >= 1) {
@@ -366,8 +374,24 @@ func (g *Generator) checkOptions() error {
 		g.opt.Symbol = '/'
 	}
 
+	if g.opt.SymbRule == SymbRuleRandom && g.opt.Symbol != 0 {
+		g.opt.Symbol = 0
+	}
+
+	if g.opt.CapRule == "" {
+		g.opt.CapRule = CapRuleNone
+	}
+
+	if g.opt.SepRule == "" {
+		g.opt.SepRule = SepRuleFixed
+	}
+
 	if g.opt.SepRule == SepRuleFixed && g.opt.Separator == 0 {
 		g.opt.Separator = '-'
+	}
+
+	if g.opt.SepRule == SepRuleRandom && g.opt.Separator != 0 {
+		g.opt.Separator = 0
 	}
 
 	if g.opt.PadRule == PadRuleFixed && g.opt.PadSymbol == 0 {
