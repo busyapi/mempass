@@ -2,7 +2,6 @@ package mempass
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"testing"
 )
@@ -13,9 +12,10 @@ func TestDefault(t *testing.T) {
 
 func TestSperatorFixedSet(t *testing.T) {
 	testPwd(&Options{
-		WordCount: 2,
-		SepRule:   SepRuleFixed,
-		Separator: '_',
+		WordCount:        2,
+		SepRule:          SepRuleFixed,
+		Separator:        '_',
+		CalculateEntropy: true,
 	}, `^[a-z]{6,8}_[a-z]{6,8}$`, t)
 }
 
@@ -177,9 +177,7 @@ func Test1337(t *testing.T) {
 
 func testPwd(opt *Options, pattern string, t *testing.T) {
 	gen := NewGenerator(opt)
-	pwd, _, err := gen.GenPassword()
-
-	fmt.Println("===       Testing password", pwd)
+	pwd, ent, err := gen.GenPassword()
 
 	if err != nil {
 		printError(err, t)
@@ -188,6 +186,10 @@ func testPwd(opt *Options, pattern string, t *testing.T) {
 	var re = regexp.MustCompile(pattern)
 	if !re.Match([]byte(pwd)) {
 		printError(errors.New("regex failed"), t)
+	}
+
+	if opt != nil && opt.CalculateEntropy && ent <= 0 {
+		printError(errors.New("Entropy is 0"), t)
 	}
 }
 
