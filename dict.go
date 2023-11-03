@@ -4,10 +4,7 @@ import (
 	"bufio"
 	"embed"
 	"errors"
-	"fmt"
-	"log"
 	"math/rand"
-	"runtime"
 )
 
 //go:embed wordsEn.txt
@@ -85,17 +82,8 @@ func readDictFile(opt *Options) (map[int][][]byte, error) {
 
 	// Check for any errors encountered during scanning
 	if err := scanner.Err(); err != nil {
-		log.Panicln("Error while scanning dict file:", err)
+		return nil, errors.New("Error while scanning dict file: " + err.Error())
 	}
 
 	return words, nil
-}
-
-func getCurrentSourceFilePath() (string, error) {
-	_, filename, _, ok := runtime.Caller(1)
-	if !ok {
-		return "", fmt.Errorf("could not get caller information")
-	}
-
-	return filename, nil
 }
