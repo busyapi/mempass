@@ -2,14 +2,16 @@ package mempass
 
 import (
 	"bufio"
+	"embed"
 	"errors"
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"runtime"
 )
+
+//go:embed wordsEn.txt
+var embeddedFile embed.FS
 
 // Get random words from the dictionary file
 func getDictWords(opt *Options) ([][]byte, error) {
@@ -47,13 +49,15 @@ func getDictWords(opt *Options) ([][]byte, error) {
 func readDictFile(opt *Options) (map[int][][]byte, error) {
 	words := make(map[int][][]byte)
 
-	sourceFilePath, err := getCurrentSourceFilePath()
-	if err != nil {
-		return nil, errors.New("Error reading dict file: " + err.Error())
-	}
+	// sourceFilePath, err := getCurrentSourceFilePath()
+	// if err != nil {
+	// 	return nil, errors.New("Error reading dict file: " + err.Error())
+	// }
+	//
+	// sourceFileDir := filepath.Dir(sourceFilePath)
 
-	sourceFileDir := filepath.Dir(sourceFilePath)
-	file, err := os.Open(sourceFileDir + "/wordsEn.txt")
+	//file, err := os.Open(sourceFileDir + "/wordsEn.txt")
+	file, err := embeddedFile.Open("wordsEn.txt")
 	if err != nil {
 		return nil, errors.New("Error reading dict file: " + err.Error())
 	}
