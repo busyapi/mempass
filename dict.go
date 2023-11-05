@@ -11,8 +11,8 @@ import (
 var embeddedFile embed.FS
 
 // Get random words from the dictionary file
-func getDictWords(opt *Options) ([][]byte, error) {
-	var words [][]byte
+func getDictWords(opt *Options) ([][]rune, error) {
+	var words [][]rune
 	dict, err := readDictFile(opt)
 	if err != nil {
 		return nil, err
@@ -43,8 +43,8 @@ func getDictWords(opt *Options) ([][]byte, error) {
 
 // Read words from the dictionary file and store them in a map
 // The keys of the map are the line lengths
-func readDictFile(opt *Options) (map[int][][]byte, error) {
-	words := make(map[int][][]byte)
+func readDictFile(opt *Options) (map[int][][]rune, error) {
+	words := make(map[int][][]rune)
 
 	// sourceFilePath, err := getCurrentSourceFilePath()
 	// if err != nil {
@@ -66,8 +66,9 @@ func readDictFile(opt *Options) (map[int][][]byte, error) {
 
 	// Read lines and append them to the slice
 	for scanner.Scan() {
-		line := scanner.Bytes()
-		lc := len(line)
+		line := scanner.Text()
+		runes := toRunes(line)
+		lc := len(runes)
 
 		// Don't include words that are bellow `minWl` or above `maxWl`
 		if lc < int(opt.MinWordLength) || (opt.MaxWordLength > 0 && lc > int(opt.MaxWordLength)) {
@@ -75,8 +76,8 @@ func readDictFile(opt *Options) (map[int][][]byte, error) {
 		}
 
 		// Create a copy of the line and append it to the slice
-		lineCopy := make([]byte, len(line))
-		copy(lineCopy, line)
+		lineCopy := make([]rune, len(line))
+		copy(lineCopy, runes)
 		words[lc] = append(words[lc], lineCopy)
 	}
 

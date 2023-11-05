@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"math/rand"
+	"unicode"
 )
 
 type CapRule string
@@ -41,6 +42,8 @@ const (
 )
 
 type Options struct {
+	FromPassphrase   bool     // Generate a password from a user passphrase
+	Passphrase       string   // User passphrase
 	UseRand          bool     // Use randomly generated words instead of dictionary words . Default false
 	WordCount        uint     // Number of words to generate. Using less than 2 is discouraged. Default is 3
 	MinWordLength    uint     // Minimum word length. O = no minimum. Using less than 4 is discouraged. Default is 6
@@ -53,12 +56,12 @@ type Options struct {
 	SymbolsAfter     uint     // Number of symbols to add at the end of each word. Default is 0
 	SymbolsBefore    uint     // Number of symbols to add at the begining of each word. Default is 0
 	SymbolPool       string   // Symbols pool. Only used if `SymbRule` is `SymbRuleRandom`. Default is "@&!-_^$*%,.;:/=+"
-	Symbol           byte     // Symbol character. Only used if `SymbRule` is `SymbRuleFixed`. Default is `/`
+	Symbol           rune     // Symbol character. Only used if `SymbRule` is `SymbRuleFixed`. Default is `/`
 	SepRule          SepRule  // Seperator type. Default is `SepRuleFixed`
 	SeparatorPool    string   // Seperators pool. Only used if `SepRule` is `SepRuleRandom`. Default is "@&!-_^$*%,.;:/=+"
-	Separator        byte     // Separator for words. Only used if `SepRule` is `SepRuleFixed`. Default is '-'
+	Separator        rune     // Separator for words. Only used if `SepRule` is `SepRuleFixed`. Default is '-'
 	PadRule          PadRule  // Padding rule. Ignored if `PadLength` is 0
-	PadSymbol        byte     // Padding symbol. Only used if `PadRule` si `PadRuleFixed`. Default is `.`
+	PadSymbol        rune     // Padding symbol. Only used if `PadRule` si `PadRuleFixed`. Default is `.`
 	PadLength        uint     // Password length to reach with padding.
 	L33tRatio        float32  // 1337 coding ratio. 0.0 = no 1337, 1.0 = all 1337, 0.3 = 1/3 1337, etc`. Default is 0
 	CalculateEntropy bool     // Calculate entropy. Default is false
@@ -66,10 +69,10 @@ type Options struct {
 
 type Generator struct {
 	opt         *Options
-	words       [][]byte
+	words       [][]rune
 	size        uint
 	paddingSize uint
-	leetMap     map[byte]byte
+	l33t        *L33t
 }
 
 func NewGenerator(opt *Options) Generator {
@@ -77,21 +80,7 @@ func NewGenerator(opt *Options) Generator {
 		opt = &Options{}
 	}
 
-	leetMap := make(map[byte]byte)
-	leetMap['a'] = '4'
-	leetMap['A'] = '4'
-	leetMap['e'] = '3'
-	leetMap['E'] = '3'
-	leetMap['i'] = '1'
-	leetMap['I'] = '1'
-	leetMap['o'] = '0'
-	leetMap['O'] = '0'
-	leetMap['s'] = '5'
-	leetMap['S'] = '5'
-	leetMap['t'] = '7'
-	leetMap['T'] = '7'
-
-	return Generator{opt: opt, leetMap: leetMap}
+	return Generator{opt: opt, l33t: NewL33t()}
 }
 
 // Generate a human memorable password
@@ -100,53 +89,61 @@ func (g *Generator) GenPassword() (string, float64, error) {
 		return "", 0, err
 	}
 
-	var words [][]byte
-	var err error
+	var pwd []rune
 
-	if !g.opt.UseRand {
-		if words, err = getDictWords(g.opt); err != nil {
-			return "", 0, err
-		}
+	if g.opt.FromPassphrase {
+		p := NewFromPassphrase()
+		pwd = p.Generate(g.opt.Passphrase)
+		g.size = uint(len(pwd))
 	} else {
-		words = genRandPwd(g.opt)
-	}
+		var words [][]rune
+		var err error
 
-	g.words = g.extraProcess(words)
-
-	var sep byte
-	if g.opt.SepRule != SepRuleNone {
-		if g.opt.SepRule == SepRuleFixed {
-			sep = g.opt.Separator
-		} else if g.opt.SepRule == SepRuleRandom {
-			sep = g.randBytesFrom(1, g.opt.SeparatorPool)[0]
+		if !g.opt.UseRand {
+			if words, err = getDictWords(g.opt); err != nil {
+				return "", 0, err
+			}
+		} else {
+			words = genRandPwd(g.opt)
 		}
 
-		g.size += uint(len(g.words) - 1)
-	}
+		g.words = g.extraProcess(words)
 
-	if g.opt.PadLength > 0 && g.size < g.opt.PadLength {
-		g.paddingSize = g.opt.PadLength - g.size
-	}
-
-	pwd := make([]byte, g.size)
-	idx := 0
-
-	for i, word := range g.words {
-		copy(pwd[idx:], word)
-
-		idx += len(word)
-
+		var sep rune
 		if g.opt.SepRule != SepRuleNone {
-			if i < len(words)-1 {
-				pwd[idx] = sep
-				idx++
+			if g.opt.SepRule == SepRuleFixed {
+				sep = g.opt.Separator
+			} else if g.opt.SepRule == SepRuleRandom {
+				sep = g.randBytesFrom(1, g.opt.SeparatorPool)[0]
+			}
+
+			g.size += uint(len(g.words) - 1)
+		}
+
+		if g.opt.PadLength > 0 && g.size < g.opt.PadLength {
+			g.paddingSize = g.opt.PadLength - g.size
+		}
+
+		pwd = make([]rune, g.size)
+		idx := 0
+
+		for i, word := range g.words {
+			copy(pwd[idx:], word)
+
+			idx += len(word)
+
+			if g.opt.SepRule != SepRuleNone {
+				if i < len(words)-1 {
+					pwd[idx] = sep
+					idx++
+				}
 			}
 		}
-	}
 
-	if g.paddingSize >= 1 {
-		pwd = g.addWordPadding(pwd, 0, g.paddingSize, g.opt.SymbolPool, g.opt.PadSymbol)
-		g.size += (g.opt.PadLength - g.size)
+		if g.paddingSize >= 1 {
+			pwd = g.addWordPadding(pwd, 0, g.paddingSize, g.opt.SymbolPool, g.opt.PadSymbol)
+			g.size += (g.opt.PadLength - g.size)
+		}
 	}
 
 	ent := 0.0
@@ -157,18 +154,18 @@ func (g *Generator) GenPassword() (string, float64, error) {
 	return string(pwd), ent, nil
 }
 
-func (g *Generator) addNumsPadding(word []byte, nb uint, na uint) []byte {
+func (g *Generator) addNumsPadding(word []rune, nb uint, na uint) []rune {
 	source := "0123456789"
 	return g.addWordPadding(word, nb, na, source, 0)
 }
 
-func (g *Generator) addSymbolsPadding(word []byte, nb uint, na uint, source string, char byte) []byte {
+func (g *Generator) addSymbolsPadding(word []rune, nb uint, na uint, source string, char rune) []rune {
 	return g.addWordPadding(word, nb, na, source, char)
 }
 
-func (g *Generator) addWordPadding(word []byte, nb uint, na uint, source string, char byte) []byte {
+func (g *Generator) addWordPadding(word []rune, nb uint, na uint, source string, char rune) []rune {
 	newSize := len(word) + int(nb) + int(na)
-	newWord := make([]byte, newSize)
+	newWord := make([]rune, newSize)
 	copyPos := 0
 
 	if nb > 0 {
@@ -188,7 +185,7 @@ func (g *Generator) addWordPadding(word []byte, nb uint, na uint, source string,
 	return newWord
 }
 
-func (g *Generator) padding(count uint, char byte, source string) []byte {
+func (g *Generator) padding(count uint, char rune, source string) []rune {
 	if char == 0 {
 		return g.randBytesFrom(count, source)
 	}
@@ -196,19 +193,20 @@ func (g *Generator) padding(count uint, char byte, source string) []byte {
 	return g.paddingOfByte(count, char)
 }
 
-func (g *Generator) randBytesFrom(count uint, source string) []byte {
-	res := make([]byte, count)
+func (g *Generator) randBytesFrom(count uint, source string) []rune {
+	res := make([]rune, count)
+	runes := toRunes(source)
 
 	for i := 0; i < int(count); i++ {
-		idx := rand.Intn(len(source))
-		res[i] = source[idx]
+		idx := rand.Intn(len(runes))
+		res[i] = runes[idx]
 	}
 
 	return res
 }
 
-func (g *Generator) paddingOfByte(count uint, char byte) []byte {
-	padding := make([]byte, count)
+func (g *Generator) paddingOfByte(count uint, char rune) []rune {
+	padding := make([]rune, count)
 
 	for i := range padding {
 		padding[i] = char
@@ -217,8 +215,8 @@ func (g *Generator) paddingOfByte(count uint, char byte) []byte {
 	return padding
 }
 
-func (g *Generator) extraProcess(words [][]byte) [][]byte {
-	newWords := make([][]byte, len(words))
+func (g *Generator) extraProcess(words [][]rune) [][]rune {
+	newWords := make([][]rune, len(words))
 
 	for i, word := range words {
 		newWord := word
@@ -236,7 +234,7 @@ func (g *Generator) extraProcess(words [][]byte) [][]byte {
 		}
 
 		if g.opt.L33tRatio > 0 {
-			newWord = g.arrayMapIf(newWord, g.isRand, g.make1337, g.opt.L33tRatio)
+			newWord = g.arrayMapIf(newWord, g.isRand, g.l33t.make1337, g.opt.L33tRatio)
 		}
 
 		g.size += uint(len(newWord))
@@ -246,8 +244,8 @@ func (g *Generator) extraProcess(words [][]byte) [][]byte {
 	return newWords
 }
 
-func (g *Generator) capWord(word []byte, i int) []byte {
-	var newWord []byte
+func (g *Generator) capWord(word []rune, i int) []rune {
+	var newWord []rune
 
 	switch g.opt.CapRule {
 	case CapRuleAll:
@@ -282,44 +280,36 @@ func (g *Generator) capWord(word []byte, i int) []byte {
 	return newWord
 }
 
-func (g *Generator) capChar(char byte, idx int) byte {
-	return char - 32
+func (g *Generator) capChar(char rune, idx int) rune {
+	return unicode.ToUpper(char)
 }
 
-func (g *Generator) isAlt(char byte, idx int, _ ...any) bool {
+func (g *Generator) isAlt(char rune, idx int, _ ...any) bool {
 	return idx%2 == 0
 }
 
-func (g *Generator) isFirstLetter(char byte, idx int, _ ...any) bool {
+func (g *Generator) isFirstLetter(char rune, idx int, _ ...any) bool {
 	return idx == 0
 }
 
-func (g *Generator) isNotFirstLetter(char byte, idx int, _ ...any) bool {
+func (g *Generator) isNotFirstLetter(char rune, idx int, _ ...any) bool {
 	return idx != 0
 }
 
-func (g *Generator) isLastLetter(char byte, idx int, o ...any) bool {
+func (g *Generator) isLastLetter(char rune, idx int, o ...any) bool {
 	return idx == o[0].(int)-1
 }
 
-func (g *Generator) isNotLastLetter(char byte, idx int, o ...any) bool {
+func (g *Generator) isNotLastLetter(char rune, idx int, o ...any) bool {
 	return idx != o[0].(int)-1
 }
 
-func (g *Generator) isRand(char byte, idx int, o ...any) bool {
+func (g *Generator) isRand(char rune, idx int, o ...any) bool {
 	return rand.Float32() <= o[0].(float32)
 }
 
-func (g *Generator) make1337(char byte, idx int) byte {
-	if _, exists := g.leetMap[char]; exists {
-		return g.leetMap[char]
-	}
-
-	return char
-}
-
-func (g *Generator) arrayMap(slice []byte, fn func(byte, int) byte) []byte {
-	result := make([]byte, len(slice))
+func (g *Generator) arrayMap(slice []rune, fn func(rune, int) rune) []rune {
+	result := make([]rune, len(slice))
 
 	for i, v := range slice {
 		result[i] = fn(v, i)
@@ -328,8 +318,8 @@ func (g *Generator) arrayMap(slice []byte, fn func(byte, int) byte) []byte {
 	return result
 }
 
-func (g *Generator) arrayMapIf(slice []byte, ifFn func(byte, int, ...any) bool, fn func(byte, int) byte, ifFnArgs ...any) []byte {
-	result := make([]byte, len(slice))
+func (g *Generator) arrayMapIf(slice []rune, ifFn func(rune, int, ...any) bool, fn func(rune, int) rune, ifFnArgs ...any) []rune {
+	result := make([]rune, len(slice))
 
 	for i, v := range slice {
 		if ifFn(v, i, ifFnArgs...) {
