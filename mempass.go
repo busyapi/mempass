@@ -49,7 +49,7 @@ const (
 )
 
 type Options struct {
-	Mode             Mode     // Generation mode
+	Mode             Mode     // Generation mode. Default is `ModeDict`
 	Passphrase       string   // User passphrase. Only used if `Mode` is `passphrase`
 	UseRand          bool     // Deprecated: Use randomly generated words instead of dictionary words . Default false
 	WordCount        uint     // Number of words to generate. Using less than 2 is discouraged. Default is 3
@@ -57,7 +57,7 @@ type Options struct {
 	MaxWordLength    uint     // Maximum word length. O = no maximum. Default is 8
 	DigitsAfter      uint     // Number of digits to add at the end of each word. Default is 0
 	DigitsBefore     uint     // Number of digits to add at the begining of each word. Default is 0
-	CapRule          CapRule  // Capitalization rule
+	CapRule          CapRule  // Capitalization rule. Default is `CapRuleNone`
 	CapRatio         float32  // Uppercase ratio. 0.0 = no uppercase, 1.0 = all uppercase, 0.3 = 1/3 uppercase, etc. Only used if `CapRule` is `CapRandom`. Default is 0.2
 	SymbRule         SymbRule // Rule for adding symbols. Default is `SymbRuleNone`
 	SymbolsAfter     uint     // Number of symbols to add at the end of each word. Default is 0
@@ -342,6 +342,10 @@ func (g *Generator) arrayMapIf(slice []rune, ifFn func(rune, int, ...any) bool, 
 }
 
 func (g *Generator) checkOptions() error {
+	if g.opt.Mode == "" {
+		g.opt.Mode = "dict"
+	}
+
 	if g.opt.WordCount == 0 {
 		g.opt.WordCount = 3
 	}
