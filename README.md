@@ -40,24 +40,26 @@ This will produce a password like `tildes-brazen-quezals`
 
 ```go
 type Options struct {
-	UseRand          bool     // Use randomly generated words instead of dictionary words . Default false
+	Mode             Mode     // Generation mode. Default is `ModeDict`
+	Passphrase       string   // User passphrase. Only used if `Mode` is `passphrase`
+	UseRand          bool     // Deprecated: Use randomly generated words instead of dictionary words . Default false
 	WordCount        uint     // Number of words to generate. Using less than 2 is discouraged. Default is 3
 	MinWordLength    uint     // Minimum word length. O = no minimum. Using less than 4 is discouraged. Default is 6
 	MaxWordLength    uint     // Maximum word length. O = no maximum. Default is 8
 	DigitsAfter      uint     // Number of digits to add at the end of each word. Default is 0
 	DigitsBefore     uint     // Number of digits to add at the begining of each word. Default is 0
-	CapRule          CapRule  // Capitalization rule
+	CapRule          CapRule  // Capitalization rule. Default is `CapRuleNone`
 	CapRatio         float32  // Uppercase ratio. 0.0 = no uppercase, 1.0 = all uppercase, 0.3 = 1/3 uppercase, etc. Only used if `CapRule` is `CapRandom`. Default is 0.2
 	SymbRule         SymbRule // Rule for adding symbols. Default is `SymbRuleNone`
 	SymbolsAfter     uint     // Number of symbols to add at the end of each word. Default is 0
 	SymbolsBefore    uint     // Number of symbols to add at the begining of each word. Default is 0
 	SymbolPool       string   // Symbols pool. Only used if `SymbRule` is `SymbRuleRandom`. Default is "@&!-_^$*%,.;:/=+"
-	Symbol           byte     // Symbol character. Only used if `SymbRule` is `SymbRuleFixed`. Default is `/`
+	Symbol           rune     // Symbol character. Only used if `SymbRule` is `SymbRuleFixed`. Default is `/`
 	SepRule          SepRule  // Seperator type. Default is `SepRuleFixed`
 	SeparatorPool    string   // Seperators pool. Only used if `SepRule` is `SepRuleRandom`. Default is "@&!-_^$*%,.;:/=+"
-	Separator        byte     // Separator for words. Only used if `SepRule` is `SepRuleFixed`. Default is '-'
+	Separator        rune     // Separator for words. Only used if `SepRule` is `SepRuleFixed`. Default is '-'
 	PadRule          PadRule  // Padding rule. Ignored if `PadLength` is 0
-	PadSymbol        byte     // Padding symbol. Only used if `PadRule` si `PadRuleFixed`. Default is `.`
+	PadSymbol        rune     // Padding symbol. Only used if `PadRule` si `PadRuleFixed`. Default is `.`
 	PadLength        uint     // Password length to reach with padding.
 	L33tRatio        float32  // 1337 coding ratio. 0.0 = no 1337, 1.0 = all 1337, 0.3 = 1/3 1337, etc`. Default is 0
 	CalculateEntropy bool     // Calculate entropy. Default is false

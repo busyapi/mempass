@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-func genRandPwd(opt *Options) [][]byte {
-	var words [][]byte
+func genRandPwd(opt *Options) [][]rune {
+	var words [][]rune
 
 	for i := 0; i < int(opt.WordCount); i++ {
 		var wl int
@@ -25,10 +25,9 @@ func genRandPwd(opt *Options) [][]byte {
 
 // Generate a random human memorable password of `wl` digits
 // Algorithm is based on Tom Van Vleck's Javascript source code: https://www.multicians.org/thvv/gpw.html
-func genWord(wl int) []byte {
+func genWord(wl int) []rune {
 	sum := 0
-	var output []byte
-	alphabet := "abcdefghijklmnopqrstuvwxyz"
+	var output []rune
 	trigram := [26][26][26]int{{ /* {26}{26}{26} */
 		/* A A */ {2, 0, 3, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 3, 2, 0, 0, 0, 0, 0, 0, 0},
 		/* A B */ {37, 25, 2, 5, 38, 0, 0, 2, 46, 1, 0, 304, 0, 2, 49, 0, 0, 24, 24, 0, 19, 0, 0, 0, 14, 0},
@@ -710,6 +709,7 @@ func genWord(wl int) []byte {
 	// Pick a random starting point.
 	pik := rand.Float32()
 	ranno := int(pik * 125729)
+	alphabet := toRunes(ALPHABET_LOWER)
 
 	for c1 := 0; c1 < 26; c1++ {
 		for c2 := 0; c2 < 26; c2++ {
@@ -731,8 +731,8 @@ func genWord(wl int) []byte {
 	nchar := 3
 
 	for nchar < int(wl) {
-		c1 := strings.Index(alphabet, strings.ToLower(string(output[nchar-2])))
-		c2 := strings.Index(alphabet, strings.ToLower(string(output[nchar-1])))
+		c1 := strings.Index(ALPHABET_LOWER, strings.ToLower(string(output[nchar-2])))
+		c2 := strings.Index(ALPHABET_LOWER, strings.ToLower(string(output[nchar-1])))
 		sum = 0
 
 		for c3 := 0; c3 < 26; c3++ {

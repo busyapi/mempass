@@ -10,6 +10,13 @@ func TestDefault(t *testing.T) {
 	testPwd(nil, `^[a-z]{6,8}-[a-z]{6,8}-[a-z]{6,8}$`, t)
 }
 
+func TestPassphrase(t *testing.T) {
+	testPwd(&Options{
+		Mode:       ModePassphrase,
+		Passphrase: "I like strong passwords 👍",
+	}, `^.*$`, t)
+}
+
 func TestSperatorFixedSet(t *testing.T) {
 	testPwd(&Options{
 		WordCount:        2,
@@ -50,7 +57,7 @@ func Test2Digits2FixedSymbolDefault(t *testing.T) {
 
 func Test2Digits2FixedSymbolSet(t *testing.T) {
 	testPwd(&Options{
-		UseRand:       true,
+		Mode:          ModeRand,
 		WordCount:     2,
 		MinWordLength: 4,
 		MaxWordLength: 4,
