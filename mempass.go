@@ -7,11 +7,18 @@ import (
 	"unicode"
 )
 
+type Mode string
 type CapRule string
 type SepRule string
 type SymbRule string
 type SymbPos string
 type PadRule string
+
+const (
+	ModeDict       Mode = "dict"
+	ModeRand       Mode = "rand"
+	ModePassphrase Mode = "passphrase"
+)
 
 const (
 	CapRuleNone              CapRule = "none"
@@ -42,9 +49,9 @@ const (
 )
 
 type Options struct {
-	FromPassphrase   bool     // Generate a password from a user passphrase
-	Passphrase       string   // User passphrase
-	UseRand          bool     // Use randomly generated words instead of dictionary words . Default false
+	Mode             Mode     // Generation mode
+	Passphrase       string   // User passphrase. Only used if `Mode` is `passphrase`
+	UseRand          bool     // Deprecated: Use randomly generated words instead of dictionary words . Default false
 	WordCount        uint     // Number of words to generate. Using less than 2 is discouraged. Default is 3
 	MinWordLength    uint     // Minimum word length. O = no minimum. Using less than 4 is discouraged. Default is 6
 	MaxWordLength    uint     // Maximum word length. O = no maximum. Default is 8
@@ -91,7 +98,7 @@ func (g *Generator) GenPassword() (string, float64, error) {
 
 	var pwd []rune
 
-	if g.opt.FromPassphrase {
+	if g.opt.Mode == ModePassphrase {
 		p := NewFromPassphrase()
 		pwd = p.Generate(g.opt.Passphrase)
 		g.size = uint(len(pwd))
@@ -99,7 +106,8 @@ func (g *Generator) GenPassword() (string, float64, error) {
 		var words [][]rune
 		var err error
 
-		if !g.opt.UseRand {
+		// Deprecated: don't use `UseRand` anymore
+		if !g.opt.UseRand || g.opt.Mode == ModeDict {
 			if words, err = getDictWords(g.opt); err != nil {
 				return "", 0, err
 			}

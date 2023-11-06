@@ -40,7 +40,9 @@ This will produce a password like `tildes-brazen-quezals`
 
 ```go
 type Options struct {
-	UseRand          bool     // Use randomly generated words instead of dictionary words . Default false
+	Mode             Mode     // Generation mode
+	Passphrase       string   // User passphrase. Only used if `Mode` is `passphrase`
+	UseRand          bool     // Deprecated: Use randomly generated words instead of dictionary words . Default false
 	WordCount        uint     // Number of words to generate. Using less than 2 is discouraged. Default is 3
 	MinWordLength    uint     // Minimum word length. O = no minimum. Using less than 4 is discouraged. Default is 6
 	MaxWordLength    uint     // Maximum word length. O = no maximum. Default is 8
